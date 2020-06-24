@@ -1,0 +1,63 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+car_position = np.array ([0.,0.]) # position of mass center of car
+v_c = np.array ([0.,0.]) # velocity of the mass center of car
+tar_position = np.array ([20.,40.]) # position of geometric center of the target
+org_position = np.array ([0.,0.]) # position of origin 
+r_tc = tar_position - car_position 
+r = 0.5 # radius of the wheel
+l = 5 # length of the axis between the wheels
+h = 0. # heading angle of the car with respect to the target
+hd = 0. # angular rate of the axis of the wheels
+psi = 3*np.pi/8 # maximum vissible angle
+phid_r = 25. # angular rate of the left wheel
+phid_l = 25. # angular rate of the right wheel
+phid_r_temp = 0. # angular rate of left wheel 
+phid_l_temp = 0. # angular rate of right wheel
+theta = np.arctan2(r_tc[1],r_tc[0]) - np.pi/2 # vission angle between target and car
+thetad = 0. # angular rate of vission angle 
+dt = 0.01
+
+while np.linalg.norm(r_tc) >= 5.0 :
+
+    c = np.cos(h + np.pi/2)
+    s = np.sin(h + np.pi/2)
+
+    N = car_position + 4*np.array ([c, s])
+    S = car_position - 4*np.array ([c, s])
+    W = car_position + 3*np.array ([-s, c])
+    E = car_position - 3*np.array ([-s, c])
+    L = car_position + 6*np.array ([-s, c])
+    R = car_position - 6*np.array ([-s, c])
+
+    plt.plot([N[0],W[0]],[N[1],W[1]],'r',[W[0],S[0]],[W[1],S[1]],'b',[S[0],E[0]],[S[1],E[1]],'b',[E[0],N[0]],[E[1],N[1]],'r',[tar_position[0],org_position[0]],[tar_position[1],org_position[1]],'k')
+    plt.draw()
+    plt.pause(0.001)
+
+    if theta > 1e-5 :
+        phid_r = 25*(1+theta/psi)
+        phid_l = 25*(1-theta/psi)
+    elif theta < -1e-5 :
+        phid_r = 25*(1+theta/psi)
+        phid_l = 25*(1-theta/psi)
+    elif -1e-6 < theta < 1e-6 :
+        phid_r = 25
+        phid_l = 25
+
+    phidd_r = (phid_r-phid_r_temp)/dt
+    phidd_l = (phid_l-phid_l_temp)/dt
+    phid_r_temp = phid_r
+    phid_l_temp = phid_l
+    hdd = r*(phidd_r-phidd_l)/l
+    A = np.array ([[c, -s],[s,  c]])
+    B = np.array ([(phidd_r + phidd_l)*(r/2.0),(phid_r + phid_l)*hd*(r/2.0)])
+    a_c = A.dot(B)
+    v_c = v_c + a_c * dt
+    car_position = car_position + v_c * dt + a_c * dt**2/2
+    hd = hd + hdd * dt
+    h = h + hd * dt + hdd * dt**2/2
+    r_tc = tar_position - car_position 
+    out = (v_c[0]*r_tc[1]-v_c[1]*r_tc[0])/(np.linalg.norm(v_c)*np.linalg.norm(r_tc))
+    theta = np.arcsin(out)
+    print (phidd_r)
